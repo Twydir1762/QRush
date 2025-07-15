@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QRush</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="sky" id="sky"></div>
+    <div class="container">
+        <header>   
+            <h1>QRush</h1>
+            <img src="/static/cloud-icon.png" alt="Cloud Icon" class="cloud-icon">
+        </header>
+        
+        <form id="uploadForm">
+            <div class="form-group">
+                <div class="file-input-wrapper">
+                    <input type="file" id="fileInput" name="fileInput" multiple required>
+                    <button type="button" class="file-input-button" onclick="document.getElementById('fileInput').click()">Выберите файлы или перетащите их сюда</button>
+                    <span id="fileName" class="file-name-display">Файл не выбран</span>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="hoursInput">Срок хранения (часы): <span id="display">1</span></label>
+                <input class="slider" type="range" id="hoursInput" name="hoursInput" min="1" max="24" step="1" value="1" required oninput="document.getElementById('display').textContent = this.value">
+            </div>
+            <button type="submit" class="upload-button">
+                <span class="button-text">Загрузить</span>
+                <span class="spinner" style="display: none;"></span>
+            </button>
+        </form>
+        <div id="messageArea" class="message-area"></div>
+
+        <div id="result" style="display:none;">
+            <div id="link-container">
+                <h3 class="download-heading">Ссылка для скачивания:</h3>
+                <a id="download-link" href="" target="_blank"></a>
+            </div>
+            <div id="qr">
+                <img id="qr-image" src="" alt="QR-код для загрузки"/>
+            </div>
+
+            <a href="/" class="upload-button" style="text-decoration: none; display: inline-block; width: 55%; margin-top: 20px;">
+               Загрузить еще файлы
+            </a>
+        </div>
+    </div>
+
+    <script src="/static/cloud-script.js"></script>
+    <script src="/static/script.js"></script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Файл не найден</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/static/styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="sky" id="sky"></div>
+    <div class="container">
+        <header>
+            <h1>QRush</h1>
+            <img src="/static/cloud-icon.png" alt="Cloud Icon" class="cloud-icon">
+        </header>
+        <div class="message-area error" style="margin-top: 30px; background-color: rgba(255, 255, 255, 0.418);">
+            <h2 style="margin-bottom: 10px;">⚠️ Упс! Файл не найден.</h2>
+            <p style="margin-bottom: 20px;">Возможно, срок его хранения истёк или ссылка была некорректна.</p>
+            <a href="/" class="upload-button" style="text-decoration: none; display: inline-block; width: 220px; margin-top: 10px;">
+                Загрузить новые файлы
+            </a>
+        </div>
+    </div>
+    <script src="/static/cloud-script.js"></script>
+</body>
+</html>
