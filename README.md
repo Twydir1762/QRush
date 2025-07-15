@@ -29,7 +29,7 @@
 1) Клонируйте репозиторий
 ```
 git clone https://github.com/Twydir1762/QRush.git
-cd tempshare
+cd QRush
 ```
 2) Установка зависимостей
 ```
