@@ -15,11 +15,11 @@
 ## Стэк проекта
 
 ### Backend:
-- [FastAPI](https://fastapi.tiangolo.com/) —  Веб-фреймворк
-- [SQLAlchemy](https://www.sqlalchemy.org/) — ORM для работы с SQLite
-- [SQLite](https://www.sqlite.org/) — Лёгкая встроенная база данных
-- [QRCode](https://pypi.org/project/qrcode/) — Генерация QR-кодов
-- [Pillow](https://pillow.readthedocs.io/) — Стилизация изображений QR-кодов
+- [FastAPI](https://fastapi.tiangolo.com/) -  Веб-фреймворк
+- [SQLAlchemy](https://www.sqlalchemy.org/) - ORM для работы с SQLite
+- [SQLite](https://www.sqlite.org/) - Лёгкая встроенная база данных
+- [QRCode](https://pypi.org/project/qrcode/) - Генерация QR-кодов
+- [Pillow](https://pillow.readthedocs.io/) - Стилизация изображений QR-кодов
 
 ### Frontend:
 - HTML5 + CSS3 + Vanilla JS
