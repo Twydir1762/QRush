@@ -17,7 +17,7 @@
 ### Backend:
 - [FastAPI](https://fastapi.tiangolo.com/) -  Веб-фреймворк
 - [SQLAlchemy](https://www.sqlalchemy.org/) - ORM для работы с SQLite
-- [SQLite](https://www.sqlite.org/) - Лёгкая встроенная база данных
+- [SQLite](https://www.sqlite.org/) - База данных
 - [QRCode](https://pypi.org/project/qrcode/) - Генерация QR-кодов
 - [Pillow](https://pillow.readthedocs.io/) - Стилизация изображений QR-кодов
 
