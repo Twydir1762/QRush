@@ -23,6 +23,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const downloadLink = document.getElementById('download-link');
     const qrImage = document.getElementById('qr-image');
 
+    let currentFileId = null;
+
     function updateFilesNames() {
         const files = fileInput.files;
 
@@ -114,6 +116,86 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             resultDiv.style.display = 'block';
             uploadForm.style.display = 'none';
+
+            currentFileId = data.download_link.split('/').pop();
+
+            const deleteButton = document.getElementById('delete_btn');
+
+            if (!deleteButton) {
+                console.warn("Кнопка #delete_btn не найдена в DOM");
+                return;
+            }
+
+            // Показываем кнопку
+            deleteButton.style.display = 'inline-block';
+
+            // Обработчик кнопки 1 раз (1 раз в жизни страницы.. и моей..)
+            if (!deleteButton.dataset.listenerAdded) {
+                deleteButton.addEventListener('click', async function () {
+                    if (!currentFileId) {
+                        console.warn("Нет текущего файла для удаления");
+                        return;
+                    }
+                        
+                    // Визуальное состояние загрузки
+                    const btnText   = deleteButton.querySelector('.button-text') || deleteButton;
+                    const btnSpinner = deleteButton.querySelector('.spinner');
+                    btnText.style.display = 'none';
+                    if (btnSpinner) btnSpinner.style.display = 'inline-block';
+                    deleteButton.disabled = true;
+
+                    try {
+                        const resp = await fetch(`/delete/${currentFileId}`, {
+                            method: 'POST',
+                            headers: { 'Accept': 'application/json' }
+                        });
+                        
+                        // Пытаюсь показать текст ошибки от сервера (если пропишу его)
+                        if (!resp.ok) {
+                            let msg = 'Не удалось удалить файл';
+                            try {
+                                const err = await resp.json();
+                                msg = err.detail || msg;
+                            } catch {}
+                            throw new Error(msg);
+                        }
+
+                        showMessage('Файл успешно удалён', 'success');
+
+                        setTimeout(() => {
+                            if (messageArea.textContent === 'Файл успешно удалён') {
+                                messageArea.textContent = '';
+                                messageArea.className = 'message-area'; 
+                            }
+                        }, 12000);
+
+                        // Сброс состояния страницы
+                        resultDiv.style.display = 'none';
+                        uploadForm.style.display = 'block';
+                        deleteButton.style.display = 'none';
+
+                        currentFileId = null;
+                        qrImage.src = '';
+                        downloadLink.href = '';
+                        downloadLink.textContent = '';
+
+                        fileInput.value = '';
+                        updateFilesNames();
+
+                    } catch (err) {
+                        showMessage(`Ошибка: ${err.message}`, 'error');
+                        console.error(err);
+                    } finally {
+                        btnText.style.display = 'inline-block';
+                        if (btnSpinner) btnSpinner.style.display = 'none';
+                        deleteButton.disabled = false;
+                    }
+                });
+
+                // Флажок, что слушатель уже повешен
+                deleteButton.dataset.listenerAdded = 'true';
+            }
+
         } catch (error) {
             showMessage('Ошибка сети или сервера.', 'error');
             console.error(error);
@@ -176,4 +258,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     uploadForm.addEventListener('dragleave', handleDragLeave);
 
 });
+
+
 

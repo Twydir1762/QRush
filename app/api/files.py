@@ -163,6 +163,36 @@ async def upload_files(
         "expired_at": expiration_time
     }
 
+@router.post("/delete/{file_id}", summary="Удалить файл по id")
+async def delete_file(file_id: str, session: SessionDep):
+    query = select(FileModel).where(FileModel.file_id == file_id)
+    result = await session.execute(query)  # Выполняем запрос
+
+    db_result = result.scalars().first()
+
+    if not db_result:
+        raise HTTPException(status_code=404, detail="File not found")
+
+    db_filename = str(db_result.filename)
+    db_filepath = f"{file_id}_{db_filename}"
+    filepath = os.path.join("uploads", db_filepath)
+
+    if not os.path.exists(filepath):
+        raise HTTPException(status_code=404, detail="File not found in storage")
+
+    # Сначала удаляем с диска
+    try:
+        os.remove(filepath)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Unable to delete file: {e}")
+
+    # Теперь удаляем с БД
+    await session.delete(db_result)
+    await session.commit()
+
+    return {"Success": True}
+
+
 # Старая ручка "upload"
 """@router.post("/s_upload", summary="Загрузить файл")
 async def upload_file(

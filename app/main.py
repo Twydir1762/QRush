@@ -27,7 +27,7 @@ async def lifespan(current_app: FastAPI):
     # Завершение работы приложения
     scheduler.shutdown()
 
-app = FastAPI(lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
+app = FastAPI(lifespan=lifespan) # docs_url=None, redoc_url=None, openapi_url=None
 app.include_router(base_router)
 
 # Монтируем статику
