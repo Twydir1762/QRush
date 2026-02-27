@@ -167,7 +167,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 messageArea.textContent = '';
                                 messageArea.className = 'message-area'; 
                             }
-                        }, 12000);
+                        }, 2000);
 
                         // Сброс состояния страницы
                         resultDiv.style.display = 'none';
