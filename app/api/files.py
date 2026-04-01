@@ -166,7 +166,7 @@ async def upload_files(
 @router.post("/delete/{file_id}", summary="Удалить файл по id")
 async def delete_file(file_id: str, session: SessionDep):
     query = select(FileModel).where(FileModel.file_id == file_id)
-    result = await session.execute(query)  # Выполняем запрос
+    result = await session.execute(query)
 
     db_result = result.scalars().first()
 
@@ -186,68 +186,8 @@ async def delete_file(file_id: str, session: SessionDep):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Unable to delete file: {e}")
 
-    # Теперь удаляем с БД
+    # Теперь с БД
     await session.delete(db_result)
     await session.commit()
 
     return {"Success": True}
-
-
-# Старая ручка "upload"
-"""@router.post("/s_upload", summary="Загрузить файл")
-async def upload_file(
-        session: SessionDep, # В начале, чтобы fastapi не ругался
-        uploaded_file: UploadFile = File(...),
-        avail_period: Annotated[int, Form(...), Field(ge=1, le=24)] = 1 # Сколько файл будет доступен (1-24 ч)
-):
-    # Оригинальные параметры файла
-    filename = uploaded_file.filename
-
-    # Генерируем уникальный id
-    newfile_id = str(uuid.uuid4())
-
-    # Сохраняем файл (асинхронно)
-    chunk_size = 1024 * 1024 # размер "чанка" - 1 мб
-
-    newfile_path = os.path.join("uploads", f"{newfile_id}_{filename}")
-    try:
-        async with aiofiles.open(newfile_path, "wb") as buff_f:
-            total_size = 0
-            while chunk := await uploaded_file.read(chunk_size):
-                # Проверка размера если обошли фронтенд
-                total_size += len(chunk)
-
-                if total_size > MAX_FILE_SIZE:
-                    raise HTTPException(status_code=413, detail=f"Размер файла не должен превышать "
-                                                                f"{MAX_FILE_SIZE} МБ")
-                await buff_f.write(chunk)
-
-    except Exception as e:
-        if os.path.exists(newfile_path): # Удаляем недогруженный файл
-            os.remove(newfile_path)
-
-        if isinstance(e, HTTPException): # Если ошибка - HTTPException - значит наша, файл слишком большой
-            raise e
-
-        # Все остальные ошибки "оборачиваем" в 500-й статус и пробрасываем дальше
-        raise HTTPException(status_code=500, detail=f"Unable to save file {filename}: {e}")
-
-    # Формируем дату и время в utc
-    upload_time = datetime.now(timezone.utc)
-    expiration_time = upload_time + timedelta(hours=avail_period)
-
-    # Коммитим в БД
-    uploaded_file = FileModel(
-        filename=filename, # Оригинальное имя
-        file_id=newfile_id, # Уникальный id
-        upload_time=upload_time, # Дата и время загрузки
-        expiration_time=expiration_time, # Когда файл будет удален
-    )
-    session.add(uploaded_file)
-    await session.commit() # только тут добавляем в бд
-
-    return {
-        "download_link": f"/download/{newfile_id}",
-        "qr_code": f"/qr/{newfile_id}",
-        "expired_at": expiration_time
-    }"""
