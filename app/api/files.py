@@ -5,6 +5,7 @@ from fastapi.responses import FileResponse, Response
 from fastapi import UploadFile, File, Form
 
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 from typing import Annotated
 from pydantic import Field
@@ -20,7 +21,8 @@ import qrcode
 from qrcode.image.styledpil import StyledPilImage
 
 from app.database import SessionDep
-from app.models import FileModel
+from app.models import FileModel, FileContent
+from app.schemas import FileDataResponse, FileUploadResponse, FileContentResponse
 from app.config import MAX_FILE_SIZE
 from app.utils import file_iter
 
@@ -36,24 +38,43 @@ def get_config():
         "max_file_size": MAX_FILE_SIZE
     }
 
-@router.get("/download/{file_id}", summary="Скачать файл")
-async def download_file(file_id: str, session: SessionDep):
-    query = select(FileModel).where(FileModel.file_id == file_id)
-    result = await session.execute(query) # Выполняем запрос
+@router.get("/file/{file_id}", summary="Информация о файле", response_model=FileDataResponse)
+async def get_file_info(file_id: str, session: SessionDep):
+    query = (select(FileModel).where(FileModel.file_id == file_id).options(selectinload(FileModel.content)))
+    result = await session.execute(query)
+    file_data = result.scalars().first()
 
+    if not file_data:
+        raise HTTPException(status_code=404, detail="File not found")
+
+    return file_data
+
+@router.get("/download/{file_id}", summary="Страница скачивания файла")
+async def download_page(file_id: str, session: SessionDep):
+    query = select(FileModel).where(FileModel.file_id == file_id)
+    result = await session.execute(query)
     db_result = result.scalars().first()
 
     if not db_result:
-        # raise HTTPException(status_code=404, detail="File not found")
         return FileResponse("app/static/not_found.html")
+
+    return FileResponse("app/static/download.html")
+
+@router.get("/download/{file_id}/file", summary="Скачать файл")
+async def download_file(file_id: str, session: SessionDep):
+    query = select(FileModel).where(FileModel.file_id == file_id)
+    result = await session.execute(query)
+    db_result = result.scalars().first()
+
+    if not db_result:
+        raise HTTPException(status_code=404, detail="File not found")
 
     db_filename = str(db_result.filename)
     db_filepath = f"{file_id}_{db_filename}"
     filepath = os.path.join("uploads", db_filepath)
 
-    if not filepath:
-        # raise HTTPException(status_code=404, detail="Iternal Error: File corrupted or deleted")
-        return FileResponse("app/static/not_found.html")
+    if not os.path.exists(filepath):
+        raise HTTPException(status_code=404, detail="File not found")
 
     return FileResponse(filepath, filename=db_filename)
 
@@ -77,19 +98,23 @@ async def generate_qr(file_id: str, request: Request):
         response.headers["Download-Link"] = download_link
         return response
 
-@router.post("/upload", summary="Загрузить файлы")
+@router.post("/upload", summary="Загрузить файлы", response_model=FileUploadResponse)
 async def upload_files(
-        session: SessionDep, # В начале, чтобы fastapi не ругался
-        uploaded_files: list[UploadFile] = File(...),
-        avail_period: Annotated[int, Form(...), Field(ge=1, le=24)] = 1 # Сколько файл будет доступен (1-24 ч)
+    session: SessionDep, # В начале, чтобы fastapi не ругался
+    uploaded_files: list[UploadFile] = File(...),
+    avail_period: Annotated[int, Form(...), Field(ge=1, le=24)] = 1 # Сколько файл будет доступен (1-24 ч)
 ):
-
     # Генерируем уникальный id
     newfile_id = str(uuid.uuid4())
+    file_size = 0
+
+    # Дата и время в utc
+    upload_time = datetime.now(timezone.utc)
+    expiration_time = upload_time + timedelta(hours=avail_period)
 
     if len(uploaded_files) > 1:
 
-        filename = f"{uploaded_files[0].filename}.zip"
+        filename = f"uploads_{upload_time.strftime('%d_%m_%Y')}.zip"
         newfile_path = os.path.join("uploads", f"{newfile_id}_{filename}")
 
         zipf = asynczipstream.ZipFile()
@@ -106,19 +131,16 @@ async def upload_files(
                 zip_files_size += chunk_len
 
                 if zip_files_size > MAX_FILE_SIZE:
-                    raise HTTPException(status_code=413, detail=f"Размер файла не должен превышать "
-                                                                f"{MAX_FILE_SIZE / 1048576} МБ")
-
+                    raise HTTPException(status_code=413, detail=f"The file size must not exceed "
+                                                                f"{MAX_FILE_SIZE / 1048576} MB")
                 await zip_buff.write(data)
+            file_size = zip_files_size
     else:
         uploaded_file = uploaded_files[0]
-
         # Оригинальные параметры файла
         filename = uploaded_files[0].filename
-
         newfile_path = os.path.join("uploads", f"{newfile_id}_{filename}")
-
-        # Сохраняем файл (асинхронно)
+        # Сохранение файла
         chunk_size = 1024 * 1024 # размер "чанка" - 1 мб
 
         try:
@@ -133,6 +155,8 @@ async def upload_files(
                                                                     f"{MAX_FILE_SIZE / 1048576} МБ")
                     await buff_f.write(chunk)
 
+                file_size = total_size
+
         except Exception as e:
             if os.path.exists(newfile_path): # Удаляем недогруженный файл
                 os.remove(newfile_path)
@@ -140,30 +164,39 @@ async def upload_files(
             if isinstance(e, HTTPException): # Если ошибка - HTTPException - значит наша, файл слишком большой
                 raise e
 
-            # Все остальные ошибки "оборачиваем" в 500-й статус и пробрасываем дальше
+            # Все остальные ошибки -> 500-й статус и проброс дальше
             raise HTTPException(status_code=500, detail=f"Unable to save file {filename}: {e}")
 
-    # Формируем дату и время в utc
-    upload_time = datetime.now(timezone.utc)
-    expiration_time = upload_time + timedelta(hours=avail_period)
-
-    # Коммитим в БД
+    # Сохранение в БД
     uploaded_file_db = FileModel(
         filename=filename, # Оригинальное имя
         file_id=newfile_id, # Уникальный id
+        size=file_size, # (Общий) размер
         upload_time=upload_time, # Дата и время загрузки
         expiration_time=expiration_time, # Когда файл будет удален
     )
+
+    # Содержимое архива (или просто файл)
+    for file_content in uploaded_files:
+        content_item = FileContent(
+            orig_name=file_content.filename,
+            size=file_content.size if file_content.size else 0
+        )
+        uploaded_file_db.content.append(content_item)
+
     session.add(uploaded_file_db)
     await session.commit() # только тут добавляем в бд
+
+    await session.refresh(uploaded_file_db, attribute_names=['content'])
 
     return {
         "download_link": f"/download/{newfile_id}",
         "qr_code": f"/qr/{newfile_id}",
-        "expired_at": expiration_time
+        "expired_at": expiration_time,
+        "content": uploaded_file_db.content
     }
 
-@router.post("/delete/{file_id}", summary="Удалить файл по id")
+@router.delete("/file/{file_id}", summary="Удалить файл по id")
 async def delete_file(file_id: str, session: SessionDep):
     query = select(FileModel).where(FileModel.file_id == file_id)
     result = await session.execute(query)
@@ -191,3 +224,4 @@ async def delete_file(file_id: str, session: SessionDep):
     await session.commit()
 
     return {"Success": True}
+

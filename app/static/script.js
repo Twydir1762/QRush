@@ -146,7 +146,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                     try {
                         const resp = await fetch(`/delete/${currentFileId}`, {
-                            method: 'POST',
+                            method: 'DELETE',
                             headers: { 'Accept': 'application/json' }
                         });
                         
