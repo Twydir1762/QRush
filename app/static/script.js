@@ -145,7 +145,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     deleteButton.disabled = true;
 
                     try {
-                        const resp = await fetch(`/delete/${currentFileId}`, {
+                        const resp = await fetch(`/file/${currentFileId}`, {
                             method: 'DELETE',
                             headers: { 'Accept': 'application/json' }
                         });
