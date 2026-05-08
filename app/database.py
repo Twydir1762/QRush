@@ -7,10 +7,11 @@ from typing import Annotated
 from pathlib import Path
 
 from app.models import Base
+from config import DB_URL
 
 # ====== Работа с бд ======
 
-engine = create_async_engine('sqlite+aiosqlite:///files_metadata.db')
+engine = create_async_engine(DB_URL)
 
 new_session = async_sessionmaker(engine, expire_on_commit=False)
 

@@ -8,6 +8,8 @@ from app.api import base_router
 from app.database import setup_database
 from app.utils import clean_up_task, setup_uploads
 
+from config import CLEAN_UP_INTERVAL
+
 # ====== Работа с FastAPI ======
 
 # Создает ФОНОВЫЙ планировщик
@@ -19,7 +21,7 @@ async def lifespan(current_app: FastAPI):
     await setup_database()
     await setup_uploads()
 
-    scheduler.add_job(clean_up_task, "interval", minutes=1)
+    scheduler.add_job(clean_up_task, "interval", minutes=CLEAN_UP_INTERVAL)
     scheduler.start()
 
     yield # <--- работа приложения
