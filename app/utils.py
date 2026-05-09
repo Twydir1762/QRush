@@ -5,8 +5,8 @@ import os
 from datetime import datetime, timezone
 from pathlib import Path
 
-from app.database import new_session
-from app.models import FileModel
+from app.database.db import new_session
+from app.database.models import FileModel
 
 # Cоздать папки uploads если её нет
 async def setup_uploads():

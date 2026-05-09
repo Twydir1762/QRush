@@ -5,10 +5,10 @@ from contextlib import asynccontextmanager
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from app.api import base_router
-from app.database import setup_database
+from app.database.db import setup_database
 from app.utils import clean_up_task, setup_uploads
 
-from config import CLEAN_UP_INTERVAL
+from app.config import CLEAN_UP_INTERVAL
 
 # ====== Работа с FastAPI ======
 
@@ -29,7 +29,7 @@ async def lifespan(current_app: FastAPI):
     # Завершение работы приложения
     scheduler.shutdown()
 
-app = FastAPI(lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None) # docs_url=None, redoc_url=None, openapi_url=None
+app = FastAPI(lifespan=lifespan)#, docs_url=None, redoc_url=None, openapi_url=None)
 app.include_router(base_router)
 
 # Монтируем статику

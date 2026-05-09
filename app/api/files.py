@@ -20,9 +20,9 @@ import asynczipstream
 import qrcode
 from qrcode.image.styledpil import StyledPilImage
 
-from app.database import SessionDep
-from app.models import FileModel, FileContent
-from app.schemas import FileDataResponse, FileUploadResponse, FileContentResponse
+from app.database.db import SessionDep
+from app.database.models import FileModel, FileContent
+from app.database.schemas import FileDataResponse, FileUploadResponse
 from app.config import MAX_FILE_SIZE
 from app.utils import file_iter
 
