@@ -7,11 +7,12 @@ from pathlib import Path
 
 from app.database.db import new_session
 from app.database.models import FileModel
+from app.config import UPLOADS_DIR
 
 # Cоздать папки uploads если её нет
 async def setup_uploads():
     root_folder = Path(__file__).resolve().parent.parent
-    uploads_folder = root_folder / "uploads"
+    uploads_folder = root_folder / UPLOADS_DIR
     if not uploads_folder.exists():
         uploads_folder.mkdir(exist_ok=True)
 
@@ -34,12 +35,11 @@ async def cleaning(session: AsyncSession):
     for file in expired_files:
         db_filename = str(file.filename)
         db_filepath = f"{file.file_id}_{db_filename}"
-        filepath = os.path.join("uploads", db_filepath)
+        filepath = os.path.join(UPLOADS_DIR, db_filepath)
 
         # Сначала удаляем с диска
         if not os.path.exists(filepath):
             continue
-
         try:
             os.remove(filepath)
             expired_ids.append(file.file_id)
