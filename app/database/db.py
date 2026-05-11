@@ -29,6 +29,3 @@ async def setup_database():
             await conn.run_sync(Base.metadata.create_all)
 
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
-
-
-
