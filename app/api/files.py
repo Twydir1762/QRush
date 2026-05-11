@@ -23,7 +23,7 @@ from qrcode.image.styledpil import StyledPilImage
 from app.database.db import SessionDep
 from app.database.models import FileModel, FileContent
 from app.database.schemas import FileDataResponse, FileUploadResponse
-from app.config import MAX_FILE_SIZE
+from app.config import MAX_FILE_SIZE, UPLOADS_DIR
 from app.utils import file_iter
 
 router = APIRouter(tags=["📄Файлы"])
@@ -49,37 +49,46 @@ async def get_file_info(file_id: str, session: SessionDep):
 
     return file_data
 
-@router.get("/download/{file_id}", summary="Страница скачивания файла")
-async def download_page(file_id: str, session: SessionDep):
-    query = select(FileModel).where(FileModel.file_id == file_id)
-    result = await session.execute(query)
-    db_result = result.scalars().first()
-
-    if not db_result:
-        return FileResponse("app/static/not_found.html")
-
-    return FileResponse("app/static/download.html")
-
 @router.get("/download/{file_id}/file", summary="Скачать файл")
 async def download_file(file_id: str, session: SessionDep):
     query = select(FileModel).where(FileModel.file_id == file_id)
     result = await session.execute(query)
     db_result = result.scalars().first()
 
-    if not db_result:
+    if not db_result or db_result.expiration_time.replace(tzinfo=timezone.utc) <= datetime.now(timezone.utc):
         raise HTTPException(status_code=404, detail="File not found")
 
     db_filename = str(db_result.filename)
     db_filepath = f"{file_id}_{db_filename}"
-    filepath = os.path.join("uploads", db_filepath)
+    filepath = os.path.join(UPLOADS_DIR, db_filepath)
 
     if not os.path.exists(filepath):
         raise HTTPException(status_code=404, detail="File not found")
 
     return FileResponse(filepath, filename=db_filename)
 
+@router.get("/download/{file_id}", summary="Страница скачивания файла")
+async def download_page(file_id: str, session: SessionDep):
+    query = select(FileModel).where(FileModel.file_id == file_id)
+    result = await session.execute(query)
+    db_result = result.scalars().first()
+
+    if not db_result or db_result.expiration_time.replace(tzinfo=timezone.utc) <= datetime.now(timezone.utc):
+        return FileResponse("app/static/not_found.html")
+
+    return FileResponse("app/static/download.html")
+
 @router.get("/qr/{file_id}", summary="Генерация QR")
-async def generate_qr(file_id: str, request: Request):
+async def generate_qr(file_id: str, request: Request, session: SessionDep):
+    # Проверка на то что file_id валиден, чтобы не генерировать невалидные QR-коды (не нагружать CPU)
+    query = select(FileModel).where(FileModel.file_id == file_id)
+    result = await session.execute(query)
+    file_data = result.scalars().first()
+
+    if not file_data:
+        raise HTTPException(status_code=404, detail="File not found")
+
+    # Генерация QR
     download_link = f"{str(request.base_url)}download/{file_id}"
 
     qr = qrcode.QRCode(error_correction=qrcode.constants.ERROR_CORRECT_H)
@@ -115,7 +124,7 @@ async def upload_files(
     if len(uploaded_files) > 1:
 
         filename = f"uploads_{upload_time.strftime('%d_%m_%Y')}.zip"
-        newfile_path = os.path.join("uploads", f"{newfile_id}_{filename}")
+        newfile_path = os.path.join(UPLOADS_DIR, f"{newfile_id}_{filename}")
 
         zipf = asynczipstream.ZipFile()
 
@@ -139,7 +148,7 @@ async def upload_files(
         uploaded_file = uploaded_files[0]
         # Оригинальные параметры файла
         filename = uploaded_files[0].filename
-        newfile_path = os.path.join("uploads", f"{newfile_id}_{filename}")
+        newfile_path = os.path.join(UPLOADS_DIR, f"{newfile_id}_{filename}")
         # Сохранение файла
         chunk_size = 1024 * 1024 # размер "чанка" - 1 мб
 
@@ -208,10 +217,13 @@ async def delete_file(file_id: str, session: SessionDep):
 
     db_filename = str(db_result.filename)
     db_filepath = f"{file_id}_{db_filename}"
-    filepath = os.path.join("uploads", db_filepath)
+    filepath = os.path.join(UPLOADS_DIR, db_filepath)
 
     if not os.path.exists(filepath):
-        raise HTTPException(status_code=404, detail="File not found in storage")
+        # Файла нет на диске, но есть в БД - мусор
+        await session.delete(db_result)
+        await session.commit()
+        raise HTTPException(status_code=404, detail="File not found in storage. Deleted ghosty DB entry")
 
     # Сначала удаляем с диска
     try:
