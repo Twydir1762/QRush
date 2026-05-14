@@ -1,0 +1,4 @@
+[run]
+source = app
+branch = True
+concurrency = greenlet, thread
