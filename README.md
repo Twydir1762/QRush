@@ -1,4 +1,4 @@
-# QRush — Temporary File Hosting
+# QRush: Temporary File Hosting
 
 🇷🇺 [Описание на русском языке](README.ru.md)
 
