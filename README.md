@@ -1,4 +1,5 @@
 # QRush: Временный файло-хостинг    
+<img width="1034" height="583" alt="Qrush_demo" src="https://github.com/user-attachments/assets/1196d5ca-bad2-4501-bb7d-b4d819f55a24" />
 
 [English version](README.en.md)
 
@@ -14,7 +15,7 @@
 - Простая и быстрая загрузка без регистрации
 - Файлы хранятся в директории `uploads/` и автоматически удаляются по таймеру
 ---
-## Стэк проекта
+## Стек проекта
 
 ### Backend:
 - [FastAPI](https://fastapi.tiangolo.com/) -  Веб-фреймворк
