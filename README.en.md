@@ -1,5 +1,7 @@
 # QRush: Temporary File Hosting
 
+<img width="1034" height="583" alt="Qrush_demo" src="https://github.com/user-attachments/assets/37a75462-7bf5-4ecf-83c8-c7c62b4c105d" />
+
 [Описание на русском языке](README.md)
 
 **QRush** is a simple temporary file storage service. Upload one or multiple files (up to 1 GB), choose how long to keep them — and get a download link and QR code. Files are automatically deleted after the storage period expires.
